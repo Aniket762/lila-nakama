@@ -2,8 +2,8 @@
 Object.defineProperty(exports, "__esModule", { value: true });
 const checkWinner = (board) => {
     const lines = [
-        [0, 1, 2], [3, 4, 5], [6, 7, 8],
-        [0, 3, 6], [1, 4, 7], [2, 5, 8],
+        [0, 1, 2], [3, 4, 5], [6, 7, 8], // row win
+        [0, 3, 6], [1, 4, 7], [2, 5, 8], // col win
         [0, 4, 8], [2, 4, 6] // diagonal win
     ];
     for (let [a, b, c] of lines) {
@@ -24,8 +24,15 @@ const matchInit = (ctx, logger, nk, params) => {
     };
     return {
         state,
-        tickRate: 10,
+        tickRate: 10, // run matchloop 10 times every second
         label: "tictactoe"
+    };
+};
+// allowing everyone to send join request
+const matchJoinAttempt = (ctx, logger, nk, dispatcher, tick, state, presence, metadata) => {
+    return {
+        state,
+        accept: true
     };
 };
 const matchJoin = (ctx, logger, nk, dispatcher, tick, state, presences) => {
@@ -36,6 +43,10 @@ const matchJoin = (ctx, logger, nk, dispatcher, tick, state, presences) => {
             state.players.push(presence.userId);
             logger.info("Player %s joined the game. Total players: %d", presence.userId, state.players.length);
         }
+    }
+    if (state.players.length === 2) {
+        dispatcher.broadcastMessage(1, JSON.stringify(state));
+        logger.info("Match is full. Broadcasting initial state.");
     }
     return { state };
 };
@@ -81,13 +92,22 @@ const matchLeave = (ctx, logger, nk, dispatcher, tick, state, presences) => {
 const matchTerminate = (ctx, logger, nk, dispatcher, tick, state, graceSeconds) => {
     return { state };
 };
+// external comm with match
+const matchSignal = (ctx, logger, nk, dispatcher, tick, state, data) => {
+    return {
+        state,
+        result: data
+    };
+};
 const InitModule = function (ctx, logger, nk, initializer) {
     initializer.registerMatch("tictactoe", {
         matchInit,
+        matchJoinAttempt,
         matchJoin,
         matchLoop,
         matchLeave,
-        matchTerminate
+        matchTerminate,
+        matchSignal
     });
     logger.info("Tic-Tac-Toe authoritative module loaded.");
 };

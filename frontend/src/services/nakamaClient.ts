@@ -7,7 +7,8 @@ let socket: Socket | null = null;
 
 export const initNakama = async () => {
     // deviceId as userId for presistance
-    const deviceId = localStorage.getItem("deviceId") || crypto.randomUUID();
+    // const deviceId = localStorage.getItem("deviceId") || crypto.randomUUID();
+    const deviceId = crypto.randomUUID(); // for testing in local need 2 ids from diff browser
     localStorage.setItem("deviceId",deviceId);
     session =await client.authenticateDevice(deviceId);
 

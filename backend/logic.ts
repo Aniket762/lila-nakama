@@ -57,7 +57,11 @@ const matchJoin: nkruntime.MatchJoinFunction<GameState> = (ctx, logger, nk, disp
       logger.info("Player %s joined the game. Total players: %d", presence.userId, state.players.length);
     }
   }
-
+  
+  if (state.players.length === 2) {
+    dispatcher.broadcastMessage(1, JSON.stringify(state));
+    logger.info("Match is full. Broadcasting initial state.");
+  }
   return { state };
 };
 

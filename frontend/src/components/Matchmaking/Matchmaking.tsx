@@ -3,9 +3,10 @@ import { Socket, MatchmakerMatched } from "@heroiclabs/nakama-js";
 
 interface Props {
   socket: Socket | null;
+  onMatchJoined: (matchId:string) => void;
 }
 
-const Matchmaking: React.FC<Props> = ({ socket }) => {
+const Matchmaking: React.FC<Props> = ({ socket, onMatchJoined }) => {
   useEffect(() => {
     if (!socket) return;
 
@@ -15,11 +16,12 @@ const Matchmaking: React.FC<Props> = ({ socket }) => {
       try {
         const match = await socket.joinMatch(undefined, matched.token);
         console.log("joined match", match.match_id);
+        onMatchJoined(match.match_id);
       } catch (err) {
         console.error("join failed:", err);
       }
     };
-  }, [socket]);
+  }, [socket, onMatchJoined]);
 
   const startMatchmaking = async () => {
     if (!socket) {
