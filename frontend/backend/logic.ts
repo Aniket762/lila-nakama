@@ -54,10 +54,41 @@ const matchJoin: nkruntime.MatchJoinFunction<GameState> = (ctx, logger, nk, disp
 };
 
 const matchLoop = nkruntime.MatchLoopFunction<GameState> = (ctx, logger, nk, dispatcher, tick, state, messages) =>{
-    // game logic goes here
+    for(const message of messages){
+        if(state.winner !== null) continue;
+        
+        // move + player
+        const messageData = JSON.parse(nk.binaryToString(message.data)); 
+        const cellIndex = messageData.index;
+        const playerIndex = state.players.indexOf(message.sender.userId);
+        const playerNumber = playerIndex + 1;
+
+        // validation
+        const isTheirTurn = (playerNumber === state.turn);
+        const isCellEmpty = (state.board[cellIndex]===0);
+        
+        // execute move
+        if(isTheirTurn && isCellEmpty){
+            state.board[cellIndex] = playerNumber;
+            const result =checkWinner(state.board);
+            if(result !== null){
+                state.winner = result;
+            }else{
+                // pass on the move
+                state.turn = (state.turn===1) ? 2:1;
+            }
+
+            // dispatch board update event
+            dispatcher.broadcastMessage(1,JSON.stringify(state));
+        }else{
+            logger.debug("Invalid move attempt by %s", message.sender.userId);
+        }
+    }
+
+    return {state};
 }
 
-const matchLeave: nkruntime.MatchLeaveFunction<GameState> = (ctx, logger, nk, dispatcher,tick, state, presences) =>{
+const matchLeave: nkruntime.MatchLeaveFunction<GameState> = (ctx, logger, nk, dispatcher,tick,  state, presences) =>{
     for(const presence of presences){
         state.players = state.players.filter((id:string) => id != presence.userId);
         logger.info("User %s left the match",presence.userId);
