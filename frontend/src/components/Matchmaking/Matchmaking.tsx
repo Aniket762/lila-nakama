@@ -1,44 +1,45 @@
-import React from "react";
-import { getSocket } from "../../services/nakamaClient";
-import { MatchmakerMatched } from "@heroiclabs/nakama-js";
+import React, { useEffect } from "react";
+import { Socket, MatchmakerMatched } from "@heroiclabs/nakama-js";
 
-const Matchmaking = () => {
+interface Props {
+  socket: Socket | null;
+}
+
+const Matchmaking: React.FC<Props> = ({ socket }) => {
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.onmatchmakermatched = async (matched: MatchmakerMatched) => {
+      console.log("match found", matched);
+
+      try {
+        const match = await socket.joinMatch(undefined, matched.token);
+        console.log("joined match", match.match_id);
+      } catch (err) {
+        console.error("join failed:", err);
+      }
+    };
+  }, [socket]);
+
   const startMatchmaking = async () => {
-    const socket = getSocket();
-
     if (!socket) {
-      console.error("Socket is not initialized. Make sure initNakama() has run.");
+      console.error("Socket not initialized");
       return;
     }
 
     try {
       const ticket = await socket.addMatchmaker("*", 2, 2);
-      console.log("Searching for match... Ticket:", ticket.ticket);
-
-      socket.onmatchmakermatched = async (matched: MatchmakerMatched) => {
-        console.log("Match found! Joining now...", matched);
-
-        try {
-          const match = await socket.joinMatch(undefined, matched.token);
-          console.log("Successfully joined match:", match.match_id);
-          
-        } catch (joinError) {
-          console.error("Error joining match:", joinError);
-        }
-      };
-
-    } catch (error) {
-      console.error("Failed to add to matchmaking pool:", error);
+      console.log("Searching for oppenent...", ticket.ticket);
+    } catch (err) {
+      console.error("matchmaking failed:", err);
     }
   };
 
   return (
     <div style={{ padding: "20px", textAlign: "center" }}>
       <h2>Multiplayer Lobby</h2>
-      <button 
-        onClick={startMatchmaking}
-        style={{ padding: "10px 20px", cursor: "pointer" }}
-      >
+
+      <button onClick={startMatchmaking}>
         Find 1v1 Match
       </button>
     </div>
