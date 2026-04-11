@@ -38,6 +38,14 @@ const matchInit: nkruntime.MatchInitFunction<GameState> = (ctx, logger, nk, para
     };
 };
 
+// allowing everyone to send join request
+const matchJoinAttempt: nkruntime.MatchJoinAttemptFunction<GameState> = (ctx, logger, nk, dispatcher, tick, state, presence, metadata) => {
+    return{
+        state,
+        accept:true
+    };
+};
+
 const matchJoin: nkruntime.MatchJoinFunction<GameState> = (ctx, logger, nk, dispatcher, tick, state, presences) => {
   for (const presence of presences) {
     
@@ -53,7 +61,7 @@ const matchJoin: nkruntime.MatchJoinFunction<GameState> = (ctx, logger, nk, disp
   return { state };
 };
 
-const matchLoop = nkruntime.MatchLoopFunction<GameState> = (ctx, logger, nk, dispatcher, tick, state, messages) =>{
+const matchLoop: nkruntime.MatchLoopFunction<GameState> =  (ctx, logger, nk, dispatcher, tick, state, messages) =>{
     for(const message of messages){
         if(state.winner !== null) continue;
         
@@ -100,13 +108,23 @@ const matchTerminate: nkruntime.MatchTerminateFunction<GameState> = (ctx, logger
     return {state};
 }
 
-const InitModule: mkruntime.InitModule = function (ctx, logger, nk, initializer){
+// external comm with match
+const matchSignal : nkruntime.MatchSignalFunction<GameState> = (ctx, logger, nk, dispatcher, tick, state, data) => {
+    return{
+        state,
+        result:data
+    };
+};
+
+const InitModule: nkruntime.InitModule = function (ctx, logger, nk, initializer){
     initializer.registerMatch("tictactoe",{
         matchInit,
+        matchJoinAttempt,
         matchJoin,
         matchLoop,
         matchLeave,
-        matchTerminate
+        matchTerminate,
+        matchSignal
     });
     logger.info("Tic-Tac-Toe authoritative module loaded.");
 }

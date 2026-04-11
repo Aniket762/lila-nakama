@@ -38,6 +38,7 @@ services:
           --socket.server_key defaultkey
     volumes:
       - nakama_data:/nakama/data
+      - ./backend/build:/nakama/data/modules
     ports:
       - "7350:7350"
       - "7351:7351"
