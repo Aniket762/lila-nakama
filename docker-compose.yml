@@ -35,7 +35,8 @@ services:
           --name nakama1 \
           --database.address postgres:localdb@postgres:5432/nakama \
           --logger.level DEBUG \
-          --socket.server_key defaultkey
+          --socket.server_key defaultkey \
+          --runtime.js_entrypoint "logic.js"
     volumes:
       - nakama_data:/nakama/data
       - ./backend/build:/nakama/data/modules

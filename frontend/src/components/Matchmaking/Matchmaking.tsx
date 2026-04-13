@@ -1,49 +1,89 @@
-import React, { useEffect } from "react";
+import React, { useState } from "react";
 import { Socket, MatchmakerMatched } from "@heroiclabs/nakama-js";
 
 interface Props {
   socket: Socket | null;
-  onMatchJoined: (matchId:string) => void;
+  onMatchJoined: (matchId: string) => void;
 }
 
+const DEMO_BOARD = ["X", "", "O", "", "X", "", "O", "", ""];
+
 const Matchmaking: React.FC<Props> = ({ socket, onMatchJoined }) => {
-  useEffect(() => {
-    if (!socket) return;
-
-    socket.onmatchmakermatched = async (matched: MatchmakerMatched) => {
-      console.log("match found", matched);
-
-      try {
-        const match = await socket.joinMatch(undefined, matched.token);
-        console.log("joined match", match.match_id);
-        onMatchJoined(match.match_id);
-      } catch (err) {
-        console.error("join failed:", err);
-      }
-    };
-  }, [socket, onMatchJoined]);
+  const [searching, setSearching] = useState(false);
 
   const startMatchmaking = async () => {
-    if (!socket) {
-      console.error("Socket not initialized");
-      return;
-    }
+    if (!socket || searching) return;
+    setSearching(true);
+
+    socket.onmatchmakermatched = async (matched: MatchmakerMatched) => {
+      try {
+        console.log("Match found, joining...");
+        const matchId = matched.match_id;
+        const token = matched.token;
+        const match = matchId
+          ? await socket.joinMatch(matchId)
+          : await socket.joinMatch(undefined, token);
+        console.log("Joined match:", match.match_id);
+        onMatchJoined(match.match_id);
+      } catch (err) {
+        console.error("Join failed:", err);
+        setSearching(false);
+      }
+    };
 
     try {
-      const ticket = await socket.addMatchmaker("*", 2, 2);
-      console.log("Searching for oppenent...", ticket.ticket);
+      await socket.addMatchmaker("*", 2, 2);
+      console.log("Searching...");
     } catch (err) {
-      console.error("matchmaking failed:", err);
+      console.error(err);
+      setSearching(false);
     }
   };
 
-  return (
-    <div style={{ padding: "20px", textAlign: "center" }}>
-      <h2>Multiplayer Lobby</h2>
+  const cancelSearch = async () => {
+    setSearching(false);
+    // Optionally call socket.removeMatchmaker if you store the ticket
+  };
 
-      <button onClick={startMatchmaking}>
-        Find 1v1 Match
-      </button>
+  return (
+    <div className="matchmaking">
+      <div className="matchmaking-hero">
+        {/* Decorative mini board */}
+        <div className="hero-board">
+          {DEMO_BOARD.map((v, i) => (
+            <div
+              key={i}
+              className={`hero-cell ${v === "X" ? "x" : v === "O" ? "o" : "empty"}`}
+            >
+              {v}
+            </div>
+          ))}
+        </div>
+
+        <h2 className="matchmaking-title">FIND A<br />MATCH</h2>
+        <p className="matchmaking-sub">2 players · real time · authoritative</p>
+      </div>
+
+      <div className="matchmaking-actions">
+        {!searching ? (
+          <button className="btn-primary" onClick={startMatchmaking}>
+            PLAY NOW
+          </button>
+        ) : (
+          <>
+            <button className="btn-primary searching" disabled>
+              SEARCHING FOR OPPONENT
+            </button>
+            <div className="searching-status">
+              <div className="status-dot" />
+              <span className="status-text">Waiting for another player to join...</span>
+              <button className="status-cancel" onClick={cancelSearch}>
+                Cancel
+              </button>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 };

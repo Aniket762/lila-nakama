@@ -35,7 +35,6 @@ const GameBoard: React.FC<Props> = ({state,onCellClick}) =>{
     return (
         <div>
             <h3>Turn: {state.turn === 1 ? "X" : "O"}</h3>
-            {/* endgame handling - winner draw */}
             {state.winner !== null && (
                 <h2>
                     {state.winner === 0? "Draw": `Winner: ${state.winner === 1 ? "X" : "O"}`}
@@ -48,7 +47,11 @@ const GameBoard: React.FC<Props> = ({state,onCellClick}) =>{
                 gridTemplateColumns: "repeat(3, 80px)"
                 }}
             >
-                {state.board.map((_, i) => renderCell(i))}
+               {state.board.map((_, i) => (
+                <div key={i}>
+                    {renderCell(i)}
+                </div>
+                ))}
             </div>
         </div>
     );
