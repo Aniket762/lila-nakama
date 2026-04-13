@@ -33,12 +33,11 @@ const matchInit: nkruntime.MatchInitFunction<GameState> = (ctx, logger, nk, para
 
     return{
         state,
-        tickRate: 10, // run matchloop 10 times every second
+        tickRate: 10,
         label: "tictactoe"
     };
 };
 
-// allowing everyone to send join request
 const matchJoinAttempt: nkruntime.MatchJoinAttemptFunction<GameState> = (ctx, logger, nk, dispatcher, tick, state, presence, metadata) => {
     return{
         state,
@@ -48,57 +47,73 @@ const matchJoinAttempt: nkruntime.MatchJoinAttemptFunction<GameState> = (ctx, lo
 
 const matchJoin: nkruntime.MatchJoinFunction<GameState> = (ctx, logger, nk, dispatcher, tick, state, presences) => {
   for (const presence of presences) {
-    
-    const canJoin = state.players.length < 2;
-    const isNewPlayer = !state.players.includes(presence.userId);
-
-    if (canJoin && isNewPlayer) {
+    if (state.players.length < 2 && !state.players.includes(presence.userId)) {
       state.players.push(presence.userId);
-      logger.info("Player %s joined the game. Total players: %d", presence.userId, state.players.length);
+      logger.info("Player %s joined. Total: %d", presence.userId, state.players.length);
     }
   }
-  
+
   if (state.players.length === 2) {
+    logger.info("Both players joined. Sending initial state.");
     dispatcher.broadcastMessage(1, JSON.stringify(state));
-    logger.info("Match is full. Broadcasting initial state.");
   }
+
   return { state };
 };
 
-const matchLoop: nkruntime.MatchLoopFunction<GameState> =  (ctx, logger, nk, dispatcher, tick, state, messages) =>{
-    for(const message of messages){
-        if(state.winner !== null) continue;
-        
-        // move + player
-        const messageData = JSON.parse(nk.binaryToString(message.data)); 
-        const cellIndex = messageData.index;
-        const playerIndex = state.players.indexOf(message.sender.userId);
-        const playerNumber = playerIndex + 1;
+const matchLoop: nkruntime.MatchLoopFunction<GameState> = (ctx, logger, nk, dispatcher, tick, state, messages) => {
 
-        // validation
-        const isTheirTurn = (playerNumber === state.turn);
-        const isCellEmpty = (state.board[cellIndex]===0);
-        
-        // execute move
-        if(isTheirTurn && isCellEmpty){
-            state.board[cellIndex] = playerNumber;
-            const result =checkWinner(state.board);
-            if(result !== null){
-                state.winner = result;
-            }else{
-                // pass on the move
-                state.turn = (state.turn===1) ? 2:1;
-            }
+  for (const message of messages) {
 
-            // dispatch board update event
-            dispatcher.broadcastMessage(1,JSON.stringify(state));
-        }else{
-            logger.debug("Invalid move attempt by %s", message.sender.userId);
-        }
+    if (message.opCode === 2) {
+      logger.info("State requested by %s", message.sender.userId);
+      dispatcher.broadcastMessage(1, JSON.stringify(state));
+      continue;
     }
 
-    return {state};
-}
+    if (state.winner !== null) continue;
+
+    const messageData = JSON.parse(nk.binaryToString(message.data));
+    const cellIndex = messageData.index;
+
+    const playerIndex = state.players.indexOf(message.sender.userId);
+    const playerNumber = playerIndex + 1;
+
+    const isTheirTurn = (playerNumber === state.turn);
+    const isCellEmpty = (state.board[cellIndex] === 0);
+
+    if (isTheirTurn && isCellEmpty) {
+      state.board[cellIndex] = playerNumber;
+
+      const result = checkWinner(state.board);
+
+      if (result !== null) {
+        state.winner = result;
+      } else {
+        state.turn = state.turn === 1 ? 2 : 1;
+      }
+
+      dispatcher.broadcastMessage(1, JSON.stringify(state));
+    } else {
+      logger.debug("Invalid move attempt by %s", message.sender.userId);
+    }
+  }
+
+  return { state };
+};
+
+const matchmakerMatched: nkruntime.MatchmakerMatchedFunction = (
+  ctx, logger, nk, matches
+) => {
+  try {
+    const matchId = nk.matchCreate("tictactoe", {});
+    logger.info("Created authoritative match: %s", matchId);
+    return matchId;
+  } catch (e) {
+    logger.error("Failed to create match: %s", e);
+    throw e;
+  }
+};
 
 const matchLeave: nkruntime.MatchLeaveFunction<GameState> = (ctx, logger, nk, dispatcher,tick,  state, presences) =>{
     for(const presence of presences){
@@ -112,7 +127,6 @@ const matchTerminate: nkruntime.MatchTerminateFunction<GameState> = (ctx, logger
     return {state};
 }
 
-// external comm with match
 const matchSignal : nkruntime.MatchSignalFunction<GameState> = (ctx, logger, nk, dispatcher, tick, state, data) => {
     return{
         state,
@@ -120,17 +134,13 @@ const matchSignal : nkruntime.MatchSignalFunction<GameState> = (ctx, logger, nk,
     };
 };
 
-const InitModule: nkruntime.InitModule = function (ctx, logger, nk, initializer){
-    initializer.registerMatch("tictactoe",{
-        matchInit,
-        matchJoinAttempt,
-        matchJoin,
-        matchLoop,
-        matchLeave,
-        matchTerminate,
-        matchSignal
+var InitModule: nkruntime.InitModule = function(ctx, logger, nk, initializer) {
+    initializer.registerMatch("tictactoe", {
+        matchInit, matchJoinAttempt, matchJoin,
+        matchLoop, matchLeave, matchTerminate, matchSignal
     });
+
+    // matchId handling made authoritative
+    initializer.registerMatchmakerMatched(matchmakerMatched);
     logger.info("Tic-Tac-Toe authoritative module loaded.");
 }
-
-export default InitModule;
