@@ -12,6 +12,12 @@ export const initNakama = async () => {
     localStorage.setItem("deviceId",deviceId);
     session =await client.authenticateDevice(deviceId);
 
+    // setting username for leaderboard
+    const username = "Player_" + deviceId.slice(0, 6);
+    await client.updateAccount(session, {
+        username
+    });
+
     // socket creation
     socket = client.createSocket();
     await socket.connect(session,true);

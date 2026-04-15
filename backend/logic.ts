@@ -30,11 +30,35 @@ const checkWinner = (board: number[]): number | null => {
 const writeLeaderboard = (nk: nkruntime.Nakama, userId: string, won: boolean, draw: boolean) => {
     try {
         const score = won ? 3 : draw ? 1 : 0;
+
+        // Fetch existing record
+        const records = nk.leaderboardRecordsList("global_rankings", [userId], 1, undefined, 0);
+        const existing = records.records?.[0];
+
+        let wins = 0, losses = 0, draws = 0;
+
+        if (existing && existing.metadata) {
+            wins = (existing.metadata as any).wins ?? 0;
+            losses = (existing.metadata as any).losses ?? 0;
+            draws = (existing.metadata as any).draws ?? 0;
+        }
+
+        // Increment stats
+        if (won) wins++;
+        else if (draw) draws++;
+        else losses++;
+
         nk.leaderboardRecordWrite(
-            "global_rankings", userId, undefined, score, 0,
-            { wins: won ? 1 : 0, losses: (!won && !draw) ? 1 : 0, draws: draw ? 1 : 0 }
+            "global_rankings",
+            userId,
+            undefined,
+            score,
+            0,
+            { wins, losses, draws }
         );
-    } catch (_) {}
+    } catch (e) {
+       // ignore
+    }
 };
 
 const matchInit: nkruntime.MatchInitFunction<GameState> = (ctx, logger, nk, params) => {
@@ -155,19 +179,32 @@ const matchmakerMatched: nkruntime.MatchmakerMatchedFunction = (ctx, logger, nk,
     return matchId;
 };
 
-const getLeaderboard: nkruntime.RpcFunction = (ctx, logger, nk, payload) => {
+const getLeaderboard: nkruntime.RpcFunction = (ctx, logger, nk) => {
     try {
         const records = nk.leaderboardRecordsList("global_rankings", [], 20, undefined, 0);
-        const result = (records.records ?? []).map((r, i) => ({
-            rank: i + 1,
+
+        const userIds = records.records.map(r => r.ownerId);
+
+    
+        const users = nk.usersGetId(userIds);
+
+        const userMap: Record<string, string> = {};
+        users.forEach(u => {
+            userMap[u.userId] = u.username ?? "Anonymous";
+        });
+
+        const result = records.records.map((r) => ({
+            rank: r.rank,
             userId: r.ownerId,
-            username: r.username,
+            username: userMap[r.ownerId] ?? "Anonymous",
             score: r.score,
-            wins:   (r.metadata as any)?.wins   ?? 0,
+            wins:   (r.metadata as any)?.wins ?? 0,
             losses: (r.metadata as any)?.losses ?? 0,
-            draws:  (r.metadata as any)?.draws  ?? 0,
+            draws:  (r.metadata as any)?.draws ?? 0,
         }));
+
         return JSON.stringify(result);
+
     } catch (e: any) {
         logger.error("getLeaderboard: %s", e.message);
         return JSON.stringify([]);
@@ -182,8 +219,15 @@ var InitModule: nkruntime.InitModule = function(ctx, logger, nk, initializer) {
     initializer.registerMatchmakerMatched(matchmakerMatched);
     initializer.registerRpc("get_leaderboard", getLeaderboard);
     try {
-        nk.leaderboardCreate("global_rankings", false, nkruntime.SortOrder.DESCENDING, nkruntime.Operator.INCREMENTAL, "alltime", undefined);
-        logger.info("Leaderboard ready.");
-    } catch (_) {}
-    logger.info("Tic-Tac-Toe module loaded.");
+    nk.leaderboardCreate(
+        "global_rankings",
+        false,
+        nkruntime.SortOrder.DESCENDING,
+        nkruntime.Operator.INCREMENTAL,
+        null // no reset all time leaderboard
+    );
+        logger.info("Leaderboard CREATED");
+    } catch (e: any) {
+    logger.error("Leaderboard creation FAILED: %s", e.message);
+    }
 }
