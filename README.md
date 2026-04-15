@@ -47,6 +47,7 @@
 
 <img width="1915" height="908" alt="Nakama Dashboard" src="https://github.com/user-attachments/assets/cf35ce16-f068-42f8-8be6-3fb6099e5c36" />
 
+<img width="1601" height="554" alt="leaderboard" src="https://github.com/user-attachments/assets/dcf733f3-a2b9-4ba7-b3d0-0a1fe9dff2de" />
 
 
 ## 🧠 Architecture Diagram
