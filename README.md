@@ -10,7 +10,6 @@
 * ⏱️ Timed mode with auto-forfeit
 * 🏆 Global leaderboard
 
----
 
 ## 🚀 Features
 
@@ -26,12 +25,27 @@
 | **Mobile-first UI** | Responsive dark-theme interface optimized for all screen sizes |
 
 ---
----
+
 
 ## 🖼️ UI Flow
 
+<img width="979" height="854" alt="Home Page" src="https://github.com/user-attachments/assets/79632bc2-8e35-4ed1-8979-a9085e45a617" />
 
----
+
+<img width="982" height="862" alt="Searching Oponent" src="https://github.com/user-attachments/assets/d3c7d7fa-c636-41bf-afb8-ba83a1eea85d" />
+
+
+<img width="1913" height="896" alt="two user" src="https://github.com/user-attachments/assets/fd318247-b2b3-4ad0-be64-e1e7a12e6ff9" />
+
+<img width="1912" height="908" alt="timeout win" src="https://github.com/user-attachments/assets/f4e8665a-43f2-46a7-b8f7-820c524ad252" />
+
+<img width="1910" height="900" alt="game screen" src="https://github.com/user-attachments/assets/215fdbf8-543a-4d55-b8b4-b41f7a0c5e5f" />
+
+<img width="1909" height="905" alt="User win state" src="https://github.com/user-attachments/assets/1b67feb9-b79b-4e8a-a384-c182452efe38" />
+
+<img width="1013" height="909" alt="Leaderboard" src="https://github.com/user-attachments/assets/bc04fffd-4231-4baf-8c42-d17750fc0c62" />
+
+
 
 ## 🧠 Architecture Diagram
 
@@ -53,9 +67,8 @@
 
 **Key idea:** Server is the single source of truth. Clients only send intent.
 
----
 
-## Project Structure
+## 📚 Project Structure
 
 ```
 lila-nakama/
@@ -85,7 +98,6 @@ lila-nakama/
 └── docker-compose.yml
 ```
 
----
 
 
 
@@ -98,7 +110,6 @@ lila-nakama/
 5. Server broadcasts updated state
 6. Winner → leaderboard updated
 
----
 
 ## 🏆 Leaderboard Logic
 
@@ -112,7 +123,6 @@ Tracks:
 * Rank
 * Win rate %
 
----
 
 ## ▶️ Run Locally
 
@@ -150,7 +160,6 @@ http://localhost:3000
 
 Use **two tabs** to test multiplayer.
 
----
 
 ## 📌 Key Design Decisions
 
@@ -159,7 +168,6 @@ Use **two tabs** to test multiplayer.
 * **Device auth** → no signup needed
 * **Incremental leaderboard** → cumulative scoring
 
----
 
 ## 🔗 Server-Side Logic
 
@@ -224,7 +232,6 @@ const lines = [
 | `3` | Server → Client | `{ timedOut: number }` | Turn timeout notification |
 | `4` | Server → Client | `{ disconnectedPlayer: number }` | Opponent disconnect notification |
 
----
 
 ## Matchmaking
 
@@ -251,5 +258,3 @@ Player A clicks "Play Classic"
 ```
 
 The mode property is passed through matchmaker properties (`{ mode }`) and read in the hook to initialize the match with the correct `turnDuration`. Classic and timed players will only be matched with others in the same mode because they pass the same property — Nakama's matchmaker uses property matching in the query.
-
----
